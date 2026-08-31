@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DR Brokers — Research Tools</title>
+<style>
+  :root{
+    --bg:#0b0f1a; --panel:#121829; --panel2:#1a2238; --border:#243049;
+    --text:#e7ecf3; --muted:#8b96ad; --accent:#7c5cff; --good:#10b981;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;}
+  header{padding:34px 28px 22px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#101729 0%, #0b0f1a 100%)}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:42px;height:42px;border-radius:10px;background:linear-gradient(135deg,#7c5cff,#5a3fd4);
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff}
+  h1{font-size:22px;margin:0}
+  .sub{color:var(--muted);font-size:13px;margin-top:3px}
+  main{padding:30px 28px;max-width:1100px;margin:0 auto}
+  .section-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;
+    font-weight:700;margin:6px 0 16px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:20px;
+    text-decoration:none;color:var(--text);display:block;transition:.15s;position:relative}
+  .card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .card .ic{font-size:26px}
+  .card h3{margin:12px 0 6px;font-size:16px;font-weight:700}
+  .card p{margin:0;font-size:12.5px;color:var(--muted);line-height:1.55}
+  .pill{display:inline-block;margin-top:14px;font-size:11px;font-weight:700;color:var(--accent);
+    background:rgba(124,92,255,.12);border:1px solid rgba(124,92,255,.4);padding:4px 10px;border-radius:99px}
+  footer{padding:22px 28px;color:var(--muted);font-size:11px;border-top:1px solid var(--border);
+    margin-top:34px;line-height:1.6;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">DR</div>
+    <div>
+      <h1>DR Brokers — Research Tools</h1>
+      <div class="sub">Internal team workspace · for distribution use, not investment advice</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="section-label">Tools</div>
+  <div class="grid">
+
+    <a class="card" href="simple-view.html">
+      <div class="ic">✅</div>
+      <h3>Simple View</h3>
+      <p>The strategy in two lists — cold sectors turning up (consider) and hot sectors (trim). Start here.</p>
+      <span class="pill">Open →</span>
+    </a>
+
+    <a class="card" href="sector-cycle.html">
+      <div class="ic">🔄</div>
+      <h3>Sector Cycle Analyzer</h3>
+      <p>Full engine — contra signals, dry-period analysis, conviction scores, automated portfolios.</p>
+      <span class="pill">Open →</span>
+    </a>
+
+    <a class="card" href="fund-selector.html">
+      <div class="ic">🎯</div>
+      <h3>Fund Selector</h3>
+      <p>Which fund to pick per category — integrity + above-median gates, then ranked. Filters out the traps.</p>
+      <span class="pill">Open →</span>
+    </a>
+
+    <a class="card" href="mf-dashboard.html">
+      <div class="ic">📊</div>
+      <h3>MF Dashboard</h3>
+      <p>Equity funds — returns, TER, AUM by category (with data as-on date).</p>
+      <span class="pill">Open →</span>
+    </a>
+
+    <a class="card" href="mf-debt-dashboard.html">
+      <div class="ic">🏦</div>
+      <h3>Debt Dashboard</h3>
+      <p>Debt &amp; arbitrage funds — returns, TER, AUM (with data as-on date).</p>
+      <span class="pill">Open →</span>
+    </a>
+
+    <a class="card" href="mf-hybrid-funds.html">
+      <div class="ic">⚖️</div>
+      <h3>Hybrid Funds</h3>
+      <p>Analysis of hybrid / balanced funds.</p>
+      <span class="pill">Open →</span>
+    </a>
+
+    <a class="card" href="mf-actual-investment.html">
+      <div class="ic">💰</div>
+      <h3>Actual Investment</h3>
+      <p>Track actual invested value, returns and performance.</p>
+      <span class="pill">Open →</span>
+    </a>
+
+    <a class="card" href="mf-tax-calculator.html">
+      <div class="ic">🧮</div>
+      <h3>Tax Calculator</h3>
+      <p>Mutual fund capital-gains / tax estimation.</p>
+      <span class="pill">Open →</span>
+    </a>
+
+  </div>
+</main>
+
+<footer>
+  DR Brokers is a SEBI-registered AMFI Mutual Fund Distributor · ARN-90735 (Sahil Aggarwal).<br>
+  Mutual fund investments are subject to market risks. For internal research/education only.
+</footer>
+</body>
+</html>
