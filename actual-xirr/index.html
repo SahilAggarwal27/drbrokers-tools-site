@@ -1,0 +1,789 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Actual XIRR — DR Brokers</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#0b0f1a; --panel:#121829; --panel2:#1a2238; --border:#243049;
+    --text:#e7ecf3; --muted:#8b96ad; --accent:#7c5cff; --accent2:#22c55e;
+    --bad:#ef4444; --good:#10b981; --warn:#f59e0b;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;font-size:14px}
+  header{padding:20px 24px;border-bottom:1px solid var(--border);
+    background:linear-gradient(180deg,#101729 0%, #0b0f1a 100%)}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:38px;height:38px;border-radius:9px;background:linear-gradient(135deg,#7c5cff,#5a3fd4);
+    display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff}
+  h1{font-size:20px;margin:0;font-weight:800;letter-spacing:-.3px}
+  .sub{color:var(--muted);font-size:12.5px;margin-top:2px}
+  main{padding:24px;max-width:1200px;margin:0 auto}
+  section{margin-bottom:20px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:18px 20px}
+  h2{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1.1px;margin:0 0 14px;font-weight:700}
+  label{display:block;font-size:11px;color:var(--muted);font-weight:600;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px}
+  input,select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
+    border-radius:8px;padding:9px 11px;font-size:13.5px;font-family:inherit}
+  input:focus,select:focus{outline:none;border-color:var(--accent)}
+  .row{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end}
+  .row>div{flex:1;min-width:150px}
+  button.action{background:var(--accent);color:#fff;border:none;padding:10px 18px;border-radius:8px;
+    cursor:pointer;font-weight:600;font-size:13px}
+  button.action:hover{filter:brightness(1.1)}
+  button.ghost{background:transparent;border:1px solid var(--border);color:var(--muted);
+    padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12.5px}
+  .drop{border:2px dashed var(--border);border-radius:12px;padding:26px;text-align:center;
+    color:var(--muted);cursor:pointer;transition:.15s}
+  .drop:hover,.drop.hot{border-color:var(--accent);color:var(--text);background:rgba(124,92,255,.05)}
+  .files{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+  .fchip{display:flex;justify-content:space-between;align-items:center;background:var(--panel2);
+    border:1px solid var(--border);border-radius:8px;padding:8px 12px;font-size:12.5px}
+  .fchip .x{cursor:pointer;color:var(--muted);font-weight:700;padding:0 4px}
+  .fchip .x:hover{color:var(--bad)}
+  .badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;
+    text-transform:uppercase;letter-spacing:.5px;margin-left:8px}
+  .b-txn{background:rgba(96,165,250,.18);color:#60a5fa;border:1px solid rgba(96,165,250,.4)}
+  .b-cg{background:rgba(16,185,129,.18);color:var(--good);border:1px solid rgba(16,185,129,.4)}
+  .b-hold{background:rgba(245,158,11,.18);color:var(--warn);border:1px solid rgba(245,158,11,.4)}
+  .b-unk{background:rgba(139,150,173,.18);color:var(--muted);border:1px solid rgba(139,150,173,.4)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:9px 12px;text-align:right;border-bottom:1px solid var(--border)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{color:var(--muted);text-transform:uppercase;font-size:10.5px;letter-spacing:.5px;font-weight:700}
+  tbody tr:hover{background:rgba(255,255,255,.02)}
+  tr.total td{font-weight:700;border-top:2px solid var(--accent);background:rgba(124,92,255,.06)}
+  .pos{color:var(--good)} .neg{color:var(--bad)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .kpi{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+  .kpi .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+  .kpi .v{font-size:22px;font-weight:800;margin-top:6px}
+  .kpi .s{font-size:11px;color:var(--muted);margin-top:3px}
+  .note{font-size:11.5px;color:var(--muted);line-height:1.6;margin-top:10px}
+  .warnbox{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.35);border-radius:8px;
+    padding:10px 14px;font-size:12px;color:#f6c667;margin-top:12px;line-height:1.55}
+  .okbox{background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.35);border-radius:8px;
+    padding:10px 14px;font-size:12px;color:#7fe3b3;margin-top:12px;line-height:1.55}
+  .tabs{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+  .tab{padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;
+    color:var(--muted);cursor:pointer;font-size:12.5px;font-weight:600}
+  .tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .hide{display:none}
+  .muted{color:var(--muted)}
+  .flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .grow{flex:1}
+  details{margin-top:10px}
+  summary{cursor:pointer;color:var(--accent);font-size:12.5px;font-weight:600}
+  .scroll{overflow-x:auto}
+  footer{text-align:center;padding:24px;color:var(--muted);font-size:11px;border-top:1px solid var(--border);margin-top:30px;line-height:1.6}
+  .surchargeWrap{margin-top:12px}
+  .chkline{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text)}
+  .chkline input{width:auto}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">DR</div>
+    <div>
+      <h1>Actual XIRR &amp; Post-Tax Returns</h1>
+      <div class="sub">Client portfolio review · invested vs profit/loss · year-wise · post-tax XIRR · for distribution use, not investment advice</div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- STEP 1: UPLOAD -->
+  <section class="card">
+    <h2>1 · Upload DR Brokers Exports</h2>
+    <div id="drop" class="drop">
+      <div style="font-size:26px;margin-bottom:8px">📂</div>
+      <div><b>Click or drop files</b> — Transaction Report and/or Capital Gain Detail (.xls / .xlsx)</div>
+      <div class="note" style="margin-top:6px">Upload multiple transaction files if your export was split by the 1-year cap — duplicates are removed automatically.</div>
+      <input id="fileInput" type="file" multiple accept=".xls,.xlsx,.csv" style="display:none" />
+    </div>
+    <div id="fileList" class="files"></div>
+    <div class="flex" style="margin-top:14px">
+      <button class="action" id="analyzeBtn">Analyze</button>
+      <button class="ghost" id="clearBtn">Clear all</button>
+      <span id="parseMsg" class="muted" style="font-size:12px"></span>
+    </div>
+  </section>
+
+  <!-- STEP 2: SETTINGS -->
+  <section class="card" id="settingsCard">
+    <h2>2 · Client &amp; Tax Settings</h2>
+    <div class="row">
+      <div>
+        <label>Client (PAN)</label>
+        <select id="clientSel"><option value="__ALL__">All investors (combined)</option></select>
+      </div>
+      <div>
+        <label>Entity type</label>
+        <select id="entitySel">
+          <option value="individual">Individual / HUF</option>
+          <option value="nri">NRI</option>
+          <option value="llp">LLP / Partnership</option>
+          <option value="pvt">Pvt Ltd (normal)</option>
+          <option value="pvt115baa">Pvt Ltd (115BAA)</option>
+        </select>
+      </div>
+      <div>
+        <label>Debt slab rate (%)</label>
+        <input id="slabRate" type="number" value="30" min="0" max="45" step="0.5" />
+      </div>
+      <div>
+        <label>Current portfolio value (₹, optional)</label>
+        <input id="currentValue" type="number" placeholder="for XIRR — from holdings" />
+      </div>
+    </div>
+    <div class="surchargeWrap">
+      <div class="chkline">
+        <input type="checkbox" id="surchargeChk" />
+        <label style="margin:0;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--text)">
+          Client crosses an income surcharge threshold (tick only if known)
+        </label>
+      </div>
+      <div id="surchargeBandWrap" class="hide" style="margin-top:10px;max-width:340px">
+        <label>Surcharge band</label>
+        <select id="surchargeBand">
+          <option value="0">No surcharge</option>
+          <option value="10">10% — income ₹50L–1Cr</option>
+          <option value="15">15% — income ₹1Cr–2Cr</option>
+          <option value="25">25% — income ₹2Cr–5Cr (non-equity)</option>
+          <option value="37">37% — income &gt; ₹5Cr (non-equity)</option>
+        </select>
+        <div class="note">Surcharge on equity STCG/LTCG (111A/112A) is capped at 15% by law. Full surcharge applies to debt/other gains. Cess 4% always added.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="hide">
+
+    <div class="tabs">
+      <button class="tab active" data-tab="summary">Summary</button>
+      <button class="tab" data-tab="yearwise">Year-wise</button>
+      <button class="tab" data-tab="tax">Realized P/L &amp; Tax</button>
+      <button class="tab" data-tab="xirr">XIRR</button>
+      <button class="tab" data-tab="audit">Data / Audit</button>
+    </div>
+
+    <!-- SUMMARY -->
+    <div class="tabpane" id="tab-summary">
+      <div class="card">
+        <h2>Summary — <span id="sumClient" class="muted"></span></h2>
+        <div class="kpis" id="sumKpis"></div>
+        <div id="sumRecon"></div>
+        <div class="note">
+          <b>Invested (from bank)</b> counts only external inflows — Fresh, SIP, Additional, Lumpsum — filtered to this client's PAN.
+          STP and Switch legs are internal fund-to-fund moves and are excluded (they cancel).
+          <b>To bank</b> is redemption proceeds paid out. Profit/Loss shown here is <b>realized</b> (needs a Capital Gain file); unrealized gain needs current value.
+        </div>
+      </div>
+    </div>
+
+    <!-- YEARWISE -->
+    <div class="tabpane hide" id="tab-yearwise">
+      <div class="card">
+        <h2>Year-wise (Financial Year: Apr–Mar)</h2>
+        <div class="scroll">
+          <table id="ywTable">
+            <thead><tr>
+              <th>FY</th><th>Invested (Bank→MF)</th><th>To Bank (Redeemed)</th>
+              <th>Net Invested</th><th>Realized P/L</th><th>Internal STP/Switch</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="note">Net Invested = Invested − To Bank for that FY. Realized P/L populates only when a Capital Gain file is uploaded and dated within that FY. Internal column is the STP/Switch turnover (each way netted), shown for transparency — it is neither new money nor a withdrawal.</div>
+      </div>
+    </div>
+
+    <!-- TAX -->
+    <div class="tabpane hide" id="tab-tax">
+      <div class="card">
+        <h2>Realized Capital Gains &amp; Post-Tax</h2>
+        <div id="taxNoFile" class="warnbox hide">No Capital Gain Detail file detected — realized P/L and tax cannot be computed. Upload the LTST / Capital-Gain export to populate this tab.</div>
+        <div id="taxBody">
+          <div class="scroll">
+            <table id="taxTable">
+              <thead><tr><th>Bucket</th><th>Buy Value</th><th>Sell Value</th><th>Gain / Loss</th><th>Tax Rate</th><th>Tax</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <div class="kpis" id="taxKpis" style="margin-top:16px"></div>
+          <div id="cfBox"></div>
+          <div class="note">
+            Equity STCG @20% (§111A), Equity LTCG @12.5% (§112A) with a pooled ₹1.25L exemption per PAN per FY.
+            Debt gains (units post 01-Apr-2023) taxed at slab (§50AA). Surcharge per your setting (equity capped 15%), plus 4% cess.
+            Loss carry-forward = net losses that exceed gains in the same head; STCL sets off STCG or LTCG, LTCL sets off LTCG only.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- XIRR -->
+    <div class="tabpane hide" id="tab-xirr">
+      <div class="card">
+        <h2>XIRR (money-weighted return)</h2>
+        <div id="xirrNoCV" class="warnbox hide">Enter <b>Current portfolio value</b> in settings (from the Holdings/Valuation report) to compute XIRR. Without it, only realized cashflows are known.</div>
+        <div class="kpis" id="xirrKpis"></div>
+        <div class="note">
+          Pre-tax XIRR uses external bank cashflows (invested = outflow, redemptions + current value = inflow), with STP/Switch excluded as internal.
+          Post-tax XIRR deducts the computed tax from the terminal value. Dates parsed as DD/MM or M/D/YY with disambiguation.
+        </div>
+      </div>
+    </div>
+
+    <!-- AUDIT -->
+    <div class="tabpane hide" id="tab-audit">
+      <div class="card">
+        <h2>Data / Audit</h2>
+        <div id="auditBody"></div>
+        <details>
+          <summary>Show parsed transactions (first 300)</summary>
+          <div class="scroll" style="margin-top:10px">
+            <table id="txnTable">
+              <thead><tr><th>Date</th><th>Client</th><th>Type</th><th>Flow</th><th>Scheme</th><th>Net Amount</th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </details>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<footer>
+  DR Brokers — SEBI-registered AMFI Mutual Fund Distributor · ARN-90735.<br>
+  Fresh build v1 — validate against a known client before relying on it. Mutual fund investments are subject to market risks. Internal research/education only; not investment or tax advice.
+</footer>
+
+<script>
+"use strict";
+/* ============================ STATE ============================ */
+const state = { files: [], txns: [], cg: null, holdings: null };
+
+/* ============================ HELPERS ============================ */
+const $ = s => document.querySelector(s);
+const $$ = s => Array.from(document.querySelectorAll(s));
+const fmt = n => (n==null||isNaN(n)) ? "—" : "₹"+Math.round(n).toLocaleString("en-IN");
+const fmtSign = n => (n==null||isNaN(n)) ? "—" : (n>=0?"+":"−")+"₹"+Math.round(Math.abs(n)).toLocaleString("en-IN");
+const pct = n => (n==null||isNaN(n)||!isFinite(n)) ? "—" : (n*100).toFixed(2)+"%";
+const cls = n => n>0 ? "pos" : n<0 ? "neg" : "";
+
+function num(v){
+  if (v==null) return 0;
+  if (typeof v === "number") return isFinite(v)?v:0;
+  let s = String(v).replace(/[₹,\s]/g,"").replace(/\(([^)]+)\)/,"-$1");
+  const f = parseFloat(s);
+  return isFinite(f)?f:0;
+}
+
+/* Robust date parse: Excel serials, Date objects, DD/MM/YYYY, M/D/YY US, YYYY-MM-DD */
+function parseDateLoose(v){
+  if (v==null || v==="") return null;
+  if (v instanceof Date) return isNaN(v)?null:v;
+  if (typeof v === "number"){ // excel serial
+    const d = new Date(Math.round((v-25569)*86400*1000));
+    return isNaN(d)?null:d;
+  }
+  const s = String(v).trim();
+  let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (m) return new Date(+m[1], +m[2]-1, +m[3]);
+  m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/);
+  if (m){
+    let a=+m[1], b=+m[2], y=+m[3];
+    if (y<100) y += (y<70?2000:1900);
+    // Disambiguate: if a>12 it's day; if b>12 it's day-second (US M/D). Default DD/MM (Indian).
+    let day, mon;
+    if (a>12){ day=a; mon=b; }
+    else if (b>12){ mon=a; day=b; }
+    else { day=a; mon=b; } // ambiguous -> assume Indian DD/MM
+    const d = new Date(y, mon-1, day);
+    return isNaN(d)?null:d;
+  }
+  const d = new Date(s);
+  return isNaN(d)?null:d;
+}
+const FY = d => { if(!d) return "—"; const y=d.getFullYear(), m=d.getMonth(); const start = m>=3?y:y-1; return "FY "+start+"-"+String((start+1)%100).padStart(2,"0"); };
+
+/* header-name based column finder */
+function colIndex(headerRow, ...names){
+  const H = headerRow.map(x => String(x==null?"":x).toLowerCase().replace(/\s+/g," ").trim());
+  for (const nm of names){
+    const t = nm.toLowerCase();
+    let i = H.indexOf(t);
+    if (i>=0) return i;
+  }
+  for (const nm of names){
+    const t = nm.toLowerCase();
+    let i = H.findIndex(h => h.includes(t));
+    if (i>=0) return i;
+  }
+  return -1;
+}
+
+/* ============================ FILE DETECTION ============================ */
+function sheetRows(ws){ return XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null}); }
+
+function detectKind(wb){
+  const names = wb.SheetNames.map(s=>s.toLowerCase());
+  if (names.some(n=>n.includes("equity")) && names.some(n=>n.includes("debt"))) return "cg";
+  // scan first sheet
+  for (const sn of wb.SheetNames){
+    const A = sheetRows(wb.Sheets[sn]);
+    for (let i=0;i<Math.min(A.length,20);i++){
+      const r = (A[i]||[]).map(x=>String(x==null?"":x).toLowerCase());
+      const line = r.join(" ");
+      if (line.includes("transaction type") && line.includes("transaction date")) return "txn";
+      if (line.includes("purchase") && line.includes("sale") && (line.includes("short term")||line.includes("long term")||line.includes("gain"))) return "cg";
+      if (line.includes("cost value") && line.includes("market value")) return "holdings";
+      if (line.includes("current value") && line.includes("units") && line.includes("nav") && !line.includes("transaction type")) return "holdings";
+    }
+  }
+  return "unknown";
+}
+
+/* ============================ PARSE: TRANSACTIONS ============================ */
+function classifyFlow(type){
+  const t = String(type||"").toUpperCase();
+  const base = t.split("(")[0].trim();
+  if (base==="FRESH" || base.startsWith("ADDITIONAL") || t.includes("SIP") || t.includes("LUMPSUM") || base==="PURCHASE") return "EXT_IN";
+  if (base==="REDEMPTION" || base==="REDEEM" || t.includes("REDEMPTION")) return "EXT_OUT";
+  if (base.startsWith("STP") || base.startsWith("SWITCH")) return "INTERNAL";
+  return "OTHER";
+}
+function parseTxnWorkbook(wb, fname){
+  const out=[];
+  for (const sn of wb.SheetNames){
+    const A = sheetRows(wb.Sheets[sn]);
+    let hi=-1;
+    for (let i=0;i<A.length;i++){
+      const r=(A[i]||[]).map(x=>String(x==null?"":x).toLowerCase());
+      if (r.includes("transaction type") && r.includes("transaction date")){ hi=i; break; }
+    }
+    if (hi<0) continue;
+    const H=A[hi];
+    const ci={
+      date: colIndex(H,"transaction date"),
+      cname: colIndex(H,"client name"),
+      cpan: colIndex(H,"client pan"),
+      type: colIndex(H,"transaction type"),
+      scheme: colIndex(H,"security/ scheme name","scheme name","security/scheme name"),
+      amount: colIndex(H,"amount"),
+      net: colIndex(H,"net amount"),
+      cv: colIndex(H,"current value"),
+      asset: colIndex(H,"asset type"),
+    };
+    for (let i=hi+1;i<A.length;i++){
+      const r=A[i]; if(!r) continue;
+      const d = parseDateLoose(r[ci.date]);
+      if (!d) continue;
+      const type = r[ci.type]; if (type==null||type==="") continue;
+      const net = ci.net>=0 ? num(r[ci.net]) : num(r[ci.amount]);
+      if (!net) continue;
+      out.push({
+        date:d, fy:FY(d),
+        client: ci.cname>=0 ? String(r[ci.cname]||"").trim() : "",
+        pan: ci.cpan>=0 ? String(r[ci.cpan]||"").trim().toUpperCase() : "",
+        type: String(type).trim(),
+        flow: classifyFlow(type),
+        scheme: ci.scheme>=0 ? String(r[ci.scheme]||"").trim() : "",
+        amount: ci.amount>=0?num(r[ci.amount]):net,
+        net: net,
+        cv: ci.cv>=0?num(r[ci.cv]):0,
+        asset: ci.asset>=0?String(r[ci.asset]||"").trim():"",
+        _src: fname, _seq: i
+      });
+    }
+  }
+  return out;
+}
+
+/* ============================ PARSE: CAPITAL GAIN ============================ */
+function parseCGWorkbook(wb, fname){
+  // Returns bucket totals {eqST,eqLT,dtST,dtLT:{buy,sell,gain}}, investor, pan, byFY, rows
+  const res = { eqST:{buy:0,sell:0,gain:0}, eqLT:{buy:0,sell:0,gain:0},
+                dtST:{buy:0,sell:0,gain:0}, dtLT:{buy:0,sell:0,gain:0},
+                investor:"", pan:"", byFY:{}, rows:[] };
+  for (const sn of wb.SheetNames){
+    const lname = sn.toLowerCase();
+    let assetClass = lname.includes("equity") ? "eq" : lname.includes("debt") ? "dt" : null;
+    const A = sheetRows(wb.Sheets[sn]);
+    let hi=-1;
+    for (let i=0;i<Math.min(A.length,30);i++){
+      const r=(A[i]||[]).map(x=>String(x==null?"":x).toLowerCase());
+      const line=r.join(" ");
+      if ((line.includes("purchase")||line.includes("buy")) && (line.includes("sale")||line.includes("sell")||line.includes("redemption")) ){ hi=i; break; }
+    }
+    if (hi<0){ captureInvestor(A,res); continue; }
+    captureInvestor(A.slice(0,hi),res);
+    const H=A[hi];
+    const ci={
+      sellDate: colIndex(H,"sale date","sell date","redemption date","transaction date"),
+      buyVal: colIndex(H,"purchase value","buy value","purchase cost","cost value","acquisition cost","cost of acquisition"),
+      sellVal: colIndex(H,"sale value","sell value","redemption value","sale amount","sale consideration"),
+      gain: colIndex(H,"capital gain","gain/loss","gain / loss","short/long term gain","gain","profit/loss"),
+      term: colIndex(H,"term","gain type","stcg/ltcg","period","type of gain","holding type"),
+      asset: colIndex(H,"asset type","category","scheme type"),
+    };
+    for (let i=hi+1;i<A.length;i++){
+      const r=A[i]; if(!r) continue;
+      const first = String(r[0]==null?"":r[0]).toLowerCase();
+      if (first.startsWith("total") || first.startsWith("grand")) continue;
+      const buy = ci.buyVal>=0?num(r[ci.buyVal]):0;
+      const sell = ci.sellVal>=0?num(r[ci.sellVal]):0;
+      let gain = ci.gain>=0?num(r[ci.gain]):(sell-buy);
+      if (!buy && !sell && !gain) continue;
+      let termStr = ci.term>=0 ? String(r[ci.term]||"").toLowerCase() : "";
+      let isLong;
+      if (termStr.includes("long")) isLong=true;
+      else if (termStr.includes("short")) isLong=false;
+      else isLong = null;
+      let ac = assetClass;
+      if (!ac && ci.asset>=0){ const a=String(r[ci.asset]||"").toLowerCase(); ac = (a.includes("equity")||a.includes("arbitrage"))?"eq":"dt"; }
+      if (!ac) ac="dt";
+      let bucket;
+      if (ac==="eq") bucket = isLong===true ? "eqLT" : "eqST";
+      else bucket = isLong===true ? "dtLT" : "dtST";
+      res[bucket].buy += buy; res[bucket].sell += sell; res[bucket].gain += gain;
+      const sd = ci.sellDate>=0 ? parseDateLoose(r[ci.sellDate]) : null;
+      const fy = sd?FY(sd):"—";
+      res.byFY[fy] = res.byFY[fy]||{gain:0};
+      res.byFY[fy].gain += gain;
+      res.rows.push({buy,sell,gain,bucket,fy,src:fname});
+    }
+  }
+  return res;
+}
+function captureInvestor(rows, res){
+  for (const r of rows){
+    for (const c of (r||[])){
+      const s = String(c==null?"":c);
+      const pm = s.match(/[A-Z]{5}[0-9]{4}[A-Z]/);
+      if (pm && !res.pan) res.pan = pm[0];
+    }
+  }
+}
+
+/* ============================ COMPUTE ============================ */
+function investorsFromTxns(txns){
+  const m = new Map();
+  txns.forEach(t=>{
+    const key = t.pan || t.client || "UNKNOWN";
+    if(!m.has(key)) m.set(key,{pan:t.pan,name:t.client});
+  });
+  return m;
+}
+function filterClient(txns, sel){
+  if (sel==="__ALL__") return txns;
+  return txns.filter(t => (t.pan||t.client||"UNKNOWN")===sel);
+}
+function summarize(txns){
+  let invested=0, toBank=0, internalIn=0, internalOut=0;
+  txns.forEach(t=>{
+    if (t.flow==="EXT_IN") invested += t.net;
+    else if (t.flow==="EXT_OUT") toBank += t.net;
+    else if (t.flow==="INTERNAL"){
+      const b=String(t.type).toUpperCase();
+      if (b.includes("IN")) internalIn += t.net; else internalOut += t.net;
+    }
+  });
+  return { invested, toBank, internal:(internalIn+internalOut)/2, net: invested-toBank };
+}
+function yearwise(txns, cg){
+  const map = {};
+  txns.forEach(t=>{
+    const k=t.fy; map[k]=map[k]||{invested:0,toBank:0,internalIn:0,internalOut:0,pl:0};
+    if (t.flow==="EXT_IN") map[k].invested += t.net;
+    else if (t.flow==="EXT_OUT") map[k].toBank += t.net;
+    else if (t.flow==="INTERNAL"){ const b=String(t.type).toUpperCase(); if(b.includes("IN")) map[k].internalIn+=t.net; else map[k].internalOut+=t.net; }
+  });
+  if (cg){ Object.keys(cg.byFY).forEach(fy=>{ map[fy]=map[fy]||{invested:0,toBank:0,internalIn:0,internalOut:0,pl:0}; map[fy].pl += cg.byFY[fy].gain; }); }
+  return Object.keys(map).sort().map(fy=>({fy, ...map[fy], internal:(map[fy].internalIn+map[fy].internalOut)/2, netInv:map[fy].invested-map[fy].toBank}));
+}
+
+/* ---- TAX ---- */
+function getSurcharge(){
+  if (!$("#surchargeChk").checked) return 0;
+  return num($("#surchargeBand").value)/100;
+}
+function computeTax(cg){
+  const sur = getSurcharge();
+  const surEq = Math.min(sur, 0.15); // equity cap 15%
+  const cess = 0.04;
+  const slab = num($("#slabRate").value)/100;
+
+  const eqLTgain = cg.eqLT.gain;
+  const eqLTtaxable = Math.max(0, eqLTgain - 125000);
+  const eqSTgain = cg.eqST.gain;
+  const dtSTgain = cg.dtST.gain;
+  const dtLTgain = cg.dtLT.gain;
+
+  const rows = [];
+  function taxRow(label, gain, rate, surRate, note){
+    const taxable = gain>0 ? gain : 0;
+    const tax = taxable>0 ? taxable*rate*(1+surRate)*(1+cess) : 0;
+    rows.push({label, gain, rate, note, tax});
+    return tax;
+  }
+  let total=0;
+  total += taxRow("Equity STCG (§111A)", eqSTgain, 0.20, surEq, "20%");
+  {
+    const rate=0.125, taxable=eqLTtaxable;
+    const tax = taxable>0 ? taxable*rate*(1+surEq)*(1+cess) : 0;
+    rows.push({label:"Equity LTCG (§112A)", gain:eqLTgain, rate, note:"12.5% after ₹1.25L exempt", tax});
+    total += tax;
+  }
+  total += taxRow("Debt STCG (slab §50AA)", dtSTgain, slab, sur, (slab*100).toFixed(0)+"% slab");
+  total += taxRow("Debt LTCG", dtLTgain, 0.125, sur, "12.5%");
+
+  const grossGain = eqSTgain+eqLTgain+dtSTgain+dtLTgain;
+  const losses = [eqSTgain,eqLTgain,dtSTgain,dtLTgain].filter(g=>g<0).reduce((a,b)=>a+b,0);
+  return { rows, totalTax: total, grossGain, netProfit: grossGain, cess, sur, surEq,
+           eqLTexempt: eqLTgain>0?Math.min(eqLTgain,125000):0,
+           anyLoss: losses<0, lossAmt: Math.abs(losses) };
+}
+
+/* ---- XIRR ---- */
+function xirr(cashflows){
+  if (cashflows.length<2) return null;
+  const cf = cashflows.slice().sort((a,b)=>a.date-b.date);
+  const t0 = cf[0].date;
+  const yrs = cf.map(c=>(c.date-t0)/(365.25*86400000));
+  const f = r => cf.reduce((s,c,i)=>s + c.amt/Math.pow(1+r, yrs[i]), 0);
+  const df = r => cf.reduce((s,c,i)=>s - yrs[i]*c.amt/Math.pow(1+r, yrs[i]+1), 0);
+  let r=0.15;
+  for (let i=0;i<100;i++){
+    const v=f(r), d=df(r);
+    if (Math.abs(d)<1e-9) break;
+    const nr = r - v/d;
+    if (!isFinite(nr)) break;
+    if (Math.abs(nr-r)<1e-8){ r=nr; break; }
+    r=nr;
+    if (r<-0.9999) r=-0.9999;
+  }
+  return (isFinite(r)&&Math.abs(f(r))<1) ? r : null;
+}
+function buildXirr(txns, currentValue, taxTotal){
+  const cf=[];
+  txns.forEach(t=>{
+    if (t.flow==="EXT_IN") cf.push({date:t.date, amt:-t.net});
+    else if (t.flow==="EXT_OUT") cf.push({date:t.date, amt:+t.net});
+  });
+  if (!cf.length) return {pre:null,post:null,hasCV:currentValue>0};
+  const term = new Date();
+  let pre=null, post=null;
+  if (currentValue>0){
+    pre = xirr(cf.concat([{date:term, amt:currentValue}]));
+    post = xirr(cf.concat([{date:term, amt:currentValue-(taxTotal||0)}]));
+  }
+  return {pre, post, hasCV: currentValue>0};
+}
+
+/* ============================ RENDER ============================ */
+function renderFileList(){
+  const el=$("#fileList"); el.innerHTML="";
+  state.files.forEach((f,idx)=>{
+    const kindBadge = {txn:"b-txn",cg:"b-cg",holdings:"b-hold",unknown:"b-unk"}[f.kind]||"b-unk";
+    const kindTxt = {txn:"Transactions",cg:"Capital Gain",holdings:"Holdings",unknown:"Unrecognized"}[f.kind]||"?";
+    const div=document.createElement("div"); div.className="fchip";
+    div.innerHTML=`<span>${f.name} <span class="badge ${kindBadge}">${kindTxt}</span> <span class="muted">· ${f.rows} rows</span></span><span class="x" data-i="${idx}">✕</span>`;
+    el.appendChild(div);
+  });
+  $$("#fileList .x").forEach(x=>x.onclick=()=>{ state.files.splice(+x.dataset.i,1); rebuild(); });
+}
+function populateClients(){
+  const sel=$("#clientSel"); const cur=sel.value;
+  sel.innerHTML='<option value="__ALL__">All investors (combined)</option>';
+  const m=investorsFromTxns(state.txns);
+  m.forEach((v,k)=>{ const o=document.createElement("option"); o.value=k; o.textContent=(v.name||k)+(v.pan?" · "+v.pan:""); sel.appendChild(o); });
+  if ([...sel.options].some(o=>o.value===cur)) sel.value=cur;
+}
+
+function render(){
+  const sel=$("#clientSel").value;
+  const txns=filterClient(state.txns, sel);
+  const cg=state.cg;
+  $("#results").classList.remove("hide");
+
+  const m=investorsFromTxns(state.txns);
+  const label = sel==="__ALL__" ? "All investors" : ((m.get(sel)?.name||sel)+(m.get(sel)?.pan?" · "+m.get(sel).pan:""));
+  $("#sumClient").textContent=label;
+
+  const s=summarize(txns);
+  const cgTax = cg ? computeTax(cg) : null;
+  const realizedPL = cg ? cgTax.netProfit : null;
+
+  const cv = num($("#currentValue").value);
+  const kp=[];
+  kp.push(kpi("Invested (from bank)", fmt(s.invested), "External inflows only"));
+  kp.push(kpi("Money to bank", fmt(s.toBank), "Redemptions paid out"));
+  kp.push(kpi("Net invested", fmt(s.net), "Invested − to bank"));
+  if (cg) kp.push(kpi("Realized P/L", fmtSign(realizedPL), "From Capital Gain file", cls(realizedPL)));
+  if (cg) kp.push(kpi("Est. tax", fmt(cgTax.totalTax), "On realized gains"));
+  if (cg) kp.push(kpi("Post-tax realized", fmtSign(realizedPL-cgTax.totalTax), "P/L after tax", cls(realizedPL-cgTax.totalTax)));
+  if (cv>0) kp.push(kpi("Current value", fmt(cv), "As entered"));
+  if (cv>0) kp.push(kpi("Unrealized (approx)", fmtSign(cv-s.net), "Current − net invested", cls(cv-s.net)));
+  $("#sumKpis").innerHTML=kp.join("");
+
+  let recon="";
+  if (cg && s.invested>0){
+    const cost = cg.eqST.buy+cg.eqLT.buy+cg.dtST.buy+cg.dtLT.buy;
+    recon = `<div class="note"><b>Note:</b> Capital-Gain buy value (₹${Math.round(cost).toLocaleString("en-IN")}) is the cost of <i>units sold</i>, not the full invested corpus. Full reconciliation needs the Holdings report.</div>`;
+  }
+  $("#sumRecon").innerHTML=recon;
+
+  const yw=yearwise(txns, cg);
+  const tb=$("#ywTable tbody"); tb.innerHTML="";
+  let tI=0,tB=0,tN=0,tP=0,tX=0;
+  yw.forEach(r=>{
+    tI+=r.invested; tB+=r.toBank; tN+=r.netInv; tP+=r.pl; tX+=r.internal;
+    tb.innerHTML+=`<tr><td>${r.fy}</td><td>${fmt(r.invested)}</td><td>${fmt(r.toBank)}</td>
+      <td>${fmt(r.netInv)}</td><td class="${cls(r.pl)}">${r.pl?fmtSign(r.pl):"—"}</td><td class="muted">${r.internal?fmt(r.internal):"—"}</td></tr>`;
+  });
+  tb.innerHTML+=`<tr class="total"><td>Total</td><td>${fmt(tI)}</td><td>${fmt(tB)}</td><td>${fmt(tN)}</td><td class="${cls(tP)}">${tP?fmtSign(tP):"—"}</td><td>${tX?fmt(tX):"—"}</td></tr>`;
+
+  if (!cg){ $("#taxNoFile").classList.remove("hide"); $("#taxBody").classList.add("hide"); }
+  else {
+    $("#taxNoFile").classList.add("hide"); $("#taxBody").classList.remove("hide");
+    const rowsMap=[
+      ["Equity STCG", cg.eqST, "20%"],
+      ["Equity LTCG", cg.eqLT, "12.5% (−₹1.25L)"],
+      ["Debt STCG", cg.dtST, $("#slabRate").value+"% slab"],
+      ["Debt LTCG", cg.dtLT, "12.5%"],
+    ];
+    const tt=$("#taxTable tbody"); tt.innerHTML="";
+    const taxByBucket = {};
+    cgTax.rows.forEach(r=>{ taxByBucket[r.label]=r.tax; });
+    const labelMap={"Equity STCG":"Equity STCG (§111A)","Equity LTCG":"Equity LTCG (§112A)","Debt STCG":"Debt STCG (slab §50AA)","Debt LTCG":"Debt LTCG"};
+    let sumBuy=0,sumSell=0,sumGain=0,sumTax=0;
+    rowsMap.forEach(([nm,b,rt])=>{
+      const tax=taxByBucket[labelMap[nm]]||0;
+      sumBuy+=b.buy; sumSell+=b.sell; sumGain+=b.gain; sumTax+=tax;
+      tt.innerHTML+=`<tr><td>${nm}</td><td>${fmt(b.buy)}</td><td>${fmt(b.sell)}</td>
+        <td class="${cls(b.gain)}">${fmtSign(b.gain)}</td><td class="muted">${rt}</td><td>${fmt(tax)}</td></tr>`;
+    });
+    tt.innerHTML+=`<tr class="total"><td>Total</td><td>${fmt(sumBuy)}</td><td>${fmt(sumSell)}</td>
+      <td class="${cls(sumGain)}">${fmtSign(sumGain)}</td><td></td><td>${fmt(sumTax)}</td></tr>`;
+
+    $("#taxKpis").innerHTML=[
+      kpi("Total profit booked", fmtSign(cgTax.grossGain), "All buckets", cls(cgTax.grossGain)),
+      kpi("Estimated tax", fmt(cgTax.totalTax), "incl. 4% cess"+(cgTax.sur?` + ${(cgTax.sur*100).toFixed(0)}% surcharge`:"")),
+      kpi("Post-tax profit", fmtSign(cgTax.grossGain-cgTax.totalTax), "After tax", cls(cgTax.grossGain-cgTax.totalTax)),
+      kpi("LTCG exemption used", fmt(cgTax.eqLTexempt), "of ₹1.25L pool"),
+    ].join("");
+
+    $("#cfBox").innerHTML = cgTax.anyLoss
+      ? `<div class="warnbox"><b>Loss carry-forward:</b> net losses of ₹${Math.round(cgTax.lossAmt).toLocaleString("en-IN")} in one or more buckets. STCL carries forward 8 years (sets off STCG/LTCG); LTCL carries forward 8 years (sets off LTCG only). Verify head-wise set-off with your tax advisor.</div>`
+      : `<div class="okbox"><b>No losses booked → nil loss carry-forward.</b> Realized gains are taxed in the same FY and are not carried forward.</div>`;
+  }
+
+  const x=buildXirr(txns, cv, cgTax?cgTax.totalTax:0);
+  if (!x.hasCV){ $("#xirrNoCV").classList.remove("hide"); } else $("#xirrNoCV").classList.add("hide");
+  $("#xirrKpis").innerHTML=[
+    kpi("Pre-tax XIRR", x.pre==null?"—":pct(x.pre), "Money-weighted"),
+    kpi("Post-tax XIRR", x.post==null?"—":pct(x.post), "After realized tax"),
+    kpi("Invested (outflows)", fmt(s.invested), "External"),
+    kpi("Value + redemptions", fmt((cv||0)+s.toBank), "Inflows"),
+  ].join("");
+
+  const gaps=detectGaps(txns);
+  $("#auditBody").innerHTML=[
+    kpiRow("Transactions parsed", txns.length),
+    kpiRow("Files", state.files.map(f=>f.name+" ("+f.kind+")").join(", ")||"—"),
+    kpiRow("Date range", txns.length?`${dstr(minDate(txns))} → ${dstr(maxDate(txns))}`:"—"),
+    kpiRow("Investors detected", investorsFromTxns(state.txns).size),
+    kpiRow("CG file", cg?("yes"+(cg.pan?" · "+cg.pan:"")):"no"),
+    gaps.length?`<div class="warnbox"><b>Possible missing windows</b> (gap &gt; 60d between transactions): ${gaps.join("; ")}. If your export was capped at 1 year, upload the earlier file(s).</div>`:`<div class="okbox">No large gaps detected between transactions.</div>`,
+  ].join("");
+
+  const xt=$("#txnTable tbody"); xt.innerHTML="";
+  txns.slice(0,300).forEach(t=>{
+    xt.innerHTML+=`<tr><td>${dstr(t.date)}</td><td>${t.client||"—"}</td><td>${t.type}</td>
+      <td>${flowLabel(t.flow)}</td><td>${t.scheme||"—"}</td><td>${fmt(t.net)}</td></tr>`;
+  });
+}
+function flowLabel(f){ return {EXT_IN:'<span class="badge b-cg">Bank→MF</span>',EXT_OUT:'<span class="badge b-hold">MF→Bank</span>',INTERNAL:'<span class="badge b-txn">Internal</span>',OTHER:'<span class="badge b-unk">Other</span>'}[f]||f; }
+function kpi(l,v,s,c){ return `<div class="kpi"><div class="l">${l}</div><div class="v ${c||""}">${v}</div><div class="s">${s||""}</div></div>`; }
+function kpiRow(l,v){ return `<div class="note"><b>${l}:</b> ${v}</div>`; }
+const dstr=d=>d?`${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")}/${d.getFullYear()}`:"—";
+const minDate=t=>new Date(Math.min(...t.map(x=>+x.date)));
+const maxDate=t=>new Date(Math.max(...t.map(x=>+x.date)));
+function detectGaps(txns){
+  const ds=txns.map(t=>+t.date).sort((a,b)=>a-b); const out=[];
+  for(let i=1;i<ds.length;i++){ const gap=(ds[i]-ds[i-1])/86400000; if(gap>60) out.push(`${dstr(new Date(ds[i-1]))}→${dstr(new Date(ds[i]))} (${Math.round(gap)}d)`); }
+  return out.slice(0,5);
+}
+
+/* ============================ ORCHESTRATION ============================ */
+async function readFile(file){
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, {type:"array", cellDates:true});
+  const kind = detectKind(wb);
+  let rows=0; wb.SheetNames.forEach(sn=>{ rows += sheetRows(wb.Sheets[sn]).length; });
+  return { name:file.name, wb, kind, rows };
+}
+function rebuild(){
+  state.txns=[]; state.cg=null;
+  state.files.forEach(f=>{
+    if (f.kind==="txn") state.txns = state.txns.concat(parseTxnWorkbook(f.wb, f.name));
+    else if (f.kind==="cg"){ const c=parseCGWorkbook(f.wb, f.name); state.cg = mergeCG(state.cg, c); }
+  });
+  state.txns = dedupe(state.txns);
+  renderFileList();
+  populateClients();
+  if (state.files.length){ render(); }
+}
+function mergeCG(a,b){ if(!a) return b; ["eqST","eqLT","dtST","dtLT"].forEach(k=>{a[k].buy+=b[k].buy;a[k].sell+=b[k].sell;a[k].gain+=b[k].gain;}); Object.keys(b.byFY).forEach(fy=>{a.byFY[fy]=a.byFY[fy]||{gain:0};a.byFY[fy].gain+=b.byFY[fy].gain;}); a.rows=a.rows.concat(b.rows); if(!a.pan)a.pan=b.pan; return a; }
+function dedupe(txns){
+  // Deterministic: keep, for each (date,scheme,type,net,pan) key, the max multiplicity seen within any single source file.
+  const perSrcCount=new Map(), maxMult=new Map();
+  txns.forEach(t=>{ const k=`${+t.date}|${t.scheme}|${t.type}|${Math.round(t.net)}|${t.pan}`; const ps=k+"||"+t._src; perSrcCount.set(ps,(perSrcCount.get(ps)||0)+1); });
+  perSrcCount.forEach((v,ps)=>{ const k=ps.split("||")[0]; maxMult.set(k, Math.max(maxMult.get(k)||0, v)); });
+  const emit=new Map(), out=[];
+  txns.forEach(t=>{ const k=`${+t.date}|${t.scheme}|${t.type}|${Math.round(t.net)}|${t.pan}`; const used=emit.get(k)||0; if(used<(maxMult.get(k)||1)){ emit.set(k,used+1); out.push(t);} });
+  return out;
+}
+
+/* ============================ EVENTS ============================ */
+const drop=$("#drop"), fileInput=$("#fileInput");
+drop.onclick=()=>fileInput.click();
+drop.ondragover=e=>{e.preventDefault();drop.classList.add("hot");};
+drop.ondragleave=()=>drop.classList.remove("hot");
+drop.ondrop=async e=>{ e.preventDefault(); drop.classList.remove("hot"); await addFiles(e.dataTransfer.files); };
+fileInput.onchange=async e=>{ await addFiles(e.target.files); fileInput.value=""; };
+async function addFiles(list){
+  $("#parseMsg").textContent="Reading…";
+  for (const f of list){
+    try{ const rec=await readFile(f); state.files.push(rec); }
+    catch(err){ $("#parseMsg").textContent="Error reading "+f.name+": "+err.message; }
+  }
+  rebuild();
+  $("#parseMsg").textContent=state.files.length+" file(s) loaded.";
+}
+$("#analyzeBtn").onclick=()=>{ if(!state.files.length){ $("#parseMsg").textContent="Upload at least one file first."; return;} rebuild(); $("#results").scrollIntoView({behavior:"smooth"}); };
+$("#clearBtn").onclick=()=>{ state.files=[]; state.txns=[]; state.cg=null; renderFileList(); $("#results").classList.add("hide"); $("#parseMsg").textContent=""; };
+$("#clientSel").onchange=render;
+$("#entitySel").onchange=()=>{ const e=$("#entitySel").value; if(e==="pvt115baa")$("#slabRate").value=25.168; else if(e==="pvt")$("#slabRate").value=30; else if(e==="llp")$("#slabRate").value=30; render(); };
+$("#slabRate").oninput=render;
+$("#currentValue").oninput=render;
+$("#surchargeChk").onchange=()=>{ $("#surchargeBandWrap").classList.toggle("hide", !$("#surchargeChk").checked); render(); };
+$("#surchargeBand").onchange=render;
+$$(".tab").forEach(t=>t.onclick=()=>{
+  $$(".tab").forEach(x=>x.classList.remove("active")); t.classList.add("active");
+  $$(".tabpane").forEach(p=>p.classList.add("hide"));
+  $("#tab-"+t.dataset.tab).classList.remove("hide");
+});
+</script>
+</body>
+</html>
